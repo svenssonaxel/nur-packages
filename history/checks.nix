@@ -1,97 +1,90 @@
-{ system
+{ pkgs
+, # Forwarded to ./default.nix so checks build from the same source fetcher as
+  # legacyPackages (see history/nixpkgs.nix).
+  fetchNixpkgsSrc ? null
 }:
 
 let
-  history = import ./default.nix { inherit system; };
-  pkgs = history.nixpkgs.latest.pkgs;
-  inherit (pkgs.lib) hasPrefix mapAttrsToList concatMapStringsSep getName;
-  inherit (builtins) hasAttr;
-  attrCanon = builtins.replaceStrings ["v" "_"] ["" "."];
+  history = import ./default.nix { inherit pkgs fetchNixpkgsSrc; };
+  inherit (pkgs.lib) hasPrefix filterAttrs mapAttrs getName;
+  inherit (import ../lib { inherit (pkgs) lib; }) attrToVersion;
   attrMatchesVer = attr: ver:
-    (hasPrefix "${attrCanon attr}." ver) || ((attrCanon attr) == ver);
-  progname = pkg: if (hasAttr "meta" pkg) && (hasAttr "mainProgram" pkg.meta)
-                  then pkg.meta.mainProgram
-                  else (if hasAttr "pname" pkg
-                        then pkg.pname
-                        else getName pkg.name);
-  verList = coll:
-    mapAttrsToList
-      (attr: pkg:
-        assert attrMatchesVer attr pkg.version;
-        { inherit attr pkg; })
-      coll;
+    (hasPrefix "${attrToVersion attr}." ver) || ((attrToVersion attr) == ver);
+  progname = pkg: pkg.meta.mainProgram or (getName pkg);
 
-  nixpkgsChecksScript =
-    concatMapStringsSep "\n"
-      ({attr, pkg}: if hasPrefix "v" attr then ''
-        pkg="${pkg}"
-        if [ -e "$pkg/.version" ]
-        then actual="$(cat "$pkg/.version")"
-        elif [ -e "$pkg/VERSION" ]
-        then actual="$(cat "$pkg/VERSION")"
-        elif [ -e "$pkg/pkgs/VERSION" ]
-        then actual="$(cat "$pkg/pkgs/VERSION")"
-        else actual=""
-        fi
-        expected="${attrCanon attr}"
-        if [[ $expected =~ ^0\.[1-4]$ ]];
-        then [ -z "$actual" ]
-        else x [ "$actual" == "$expected" ]
-        fi
-      '' else "")
-      (mapAttrsToList (attr: pkg:
-        { inherit attr; pkg = pkg.src; })
-        history.nixpkgs);
+  # One check derivation per version: `x` echoes then runs each command, so a
+  # failing step shows up in the build log.
+  mkCheck = label: script: pkgs.runCommand "check-${label}" { } ''
+    set -eu
+    x() { echo "$@"; "$@"; }
+    ${script}
+    mkdir -p "$out"
+    echo "${label} check passed" > "$out/result"
+  '';
 
-  gsChecksScript =
-    concatMapStringsSep "\n"
-      ({attr, pkg}: ''
+  # Only the vX_Y nixpkgs releases (drop allSources and any non-release attr).
+  releaseAttrs = filterAttrs (n: _: hasPrefix "v" n) history.nixpkgs;
+
+  helloChecks = mapAttrs
+    (v: rel: mkCheck "hello-${v}" ''
+      x [ -e ${rel.pkgs.hello}/bin/hello ]
+    '')
+    releaseAttrs;
+
+  nixpkgsChecks = mapAttrs
+    (v: rel: mkCheck "nixpkgs-${v}" ''
+      pkg="${rel.src}"
+      if [ -e "$pkg/.version" ]
+      then actual="$(cat "$pkg/.version")"
+      elif [ -e "$pkg/VERSION" ]
+      then actual="$(cat "$pkg/VERSION")"
+      elif [ -e "$pkg/pkgs/VERSION" ]
+      then actual="$(cat "$pkg/pkgs/VERSION")"
+      else actual=""
+      fi
+      x [ "$actual" == "${attrToVersion v}" ]
+    '')
+    releaseAttrs;
+
+  ghostscriptChecks = mapAttrs
+    (attr: pkg:
+      assert attrMatchesVer attr pkg.version;
+      mkCheck "ghostscript-${attr}" ''
         program="${pkg}/bin/${progname pkg}"
         x [ -e "$program" ]
         actual="$($program --version)"
-        expected="${pkg.version}"
-        x [ "$actual" == "$expected" ]
+        x [ "$actual" == "${pkg.version}" ]
       '')
-      (verList history.ghostscript);
+    history.ghostscript;
 
-  popplerChecksScript =
-    concatMapStringsSep "\n"
-      ({attr, pkg}: ''
+  popplerChecks = mapAttrs
+    (attr: pkg:
+      assert attrMatchesVer attr pkg.version;
+      mkCheck "poppler-utils-${attr}" ''
         program="${pkg}/bin/pdfinfo"
-        ls -lad ${pkg}
-        ls -la ${pkg}
-        ls -la ${pkg}/bin
         x [ -e "$program" ]
         actual="$($program -v 2>&1 | sed -r 's/.* //;2,$d')"
-        expected="${pkg.version}"
-        x [ "$actual" == "$expected" ]
+        x [ "$actual" == "${pkg.version}" ]
       '')
-      (verList history.poppler-utils);
+    history.poppler-utils;
 
-  pythonChecksScript =
-    concatMapStringsSep "\n"
-      ({attr, pkg}: ''
+  pythonChecks = mapAttrs
+    (attr: pkg:
+      assert attrMatchesVer attr pkg.version;
+      mkCheck "python-${attr}" ''
         program="${pkg}/bin/${progname pkg}"
         x [ -e "$program" ]
         actual="$($program --version 2>&1)"
-        expected="${pkg.version}"
-        x [ "$actual" == "Python $expected" ]
+        x [ "$actual" == "Python ${pkg.version}" ]
       '')
-      (verList history.python);
-
-in pkgs.stdenv.mkDerivation {
-  pname = "history-python-check";
-  version = "unversioned";
-  phases = [ "buildPhase" ];
-  buildPhase = ''
-    set -eu
-    x() { echo "$@"; "$@"; }
-    ${nixpkgsChecksScript}
-    ${popplerChecksScript}
-    ${gsChecksScript}
-    ${pythonChecksScript}
-    mkdir -p "$out"
-    echo "all python history checks passed" > "$out/result"
-  '';
+    history.python;
+in
+# Nested module -> version -> check derivation; the top level flattens this into
+# `checks.<system>` via lib.flattenAttrs (e.g. `hello-v15_09`).
+{
+  hello = helloChecks;
+  nixpkgs = nixpkgsChecks;
+  ghostscript = ghostscriptChecks;
+  poppler-utils = popplerChecks;
+  python = pythonChecks;
 }
-

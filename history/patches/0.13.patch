@@ -1,0 +1,21 @@
+--- a/pkgs/stdenv/linux/default.nix
++++ b/pkgs/stdenv/linux/default.nix
+@@ -34,13 +34,14 @@
+   # This function downloads a file.
+   download = {url, sha256}: derivation {
+     name = baseNameOf (toString url);
+-    builder = bootstrapFiles.sh;
+-    inherit system url;
+-    inherit (bootstrapFiles) bzip2 mkdir curl cpio ln;
+-    args = [ ./scripts/download.sh ];
++    builder = "builtin:fetchurl";
++    system = "builtin";
++    url = builtins.replaceStrings [ "http://" ] [ "https://" ] url;
+     outputHashAlgo = "sha256";
+     outputHash = sha256;
++    outputHashMode = "flat";
+     impureEnvVars = [ "http_proxy" "https_proxy" "ftp_proxy" "all_proxy" "no_proxy" ];
++    preferLocalBuild = true;
+   };
+ 
+   
