@@ -3,19 +3,81 @@
 A personal [NUR](https://github.com/nix-community/NUR) repository: reusable Nix
 functions and a curated collection of historic package versions.
 
+Examples below use the `github:svenssonaxel/nur-packages` flake reference; inside a
+clone, `.` works in its place.
+
 ## Functions and helpers
 
-* `#lib`: Reusable Nix functions provided by this repository:
-  * `attrToVersion`: a `vX_Y_Z` attribute name to its `X.Y.Z` version string.
-  * `eachSystem` / `eachDefaultSystem`: vendored from [numtide/flake-utils](https://github.com/numtide/flake-utils) (MIT), so depending on this repository needs neither flake-utils nor a separate input.
+Exposed under `#lib`. List them with `nix eval .#lib --apply builtins.attrNames`;
+each is documented below (generated from the source doc-comments; see readme.nix).
+
+<!-- BEGIN functions (generated; see readme.nix) -->
+## `lib.attrToVersion`
+
+Convert a `vX_Y_Z` attribute name to its `X.Y.Z` version string.
+
+### Example
+```nix
+attrToVersion "v3_6_1" => "3.6.1"
+```
+
+## `lib.flattenDerivations`
+
+Flatten a nested tree of derivations into a single level, joining each path
+component with "-" (e.g. `{ hello.v15_09 = d; }` => `{ "hello-v15_09" = d; }`).
+Builds the flat `checks.<system>` / `packages.<system>` sets that flakes
+require. Merges with `unionOfDisjoint`, so any name collision throws rather
+than silently shadowing a leaf.
+
+## `lib.recurseIntoDerivations`
+
+Recursively mark every attrset with `recurseIntoAttrs`, so `nix search`,
+`nix-env -qa` and NUR enumerate the derivations beneath it. Stops at derivation
+leaves, and is lazy (only marks attrsets that are forced). To exclude a subtree
+— e.g. a whole nixpkgs release set, which must not be descended into — override
+it back afterwards: `recurseIntoDerivations x // { inherit (x) nixpkgs; }`.
+
+## `lib.inPureEvalMode`
+
+True during pure evaluation (e.g. flake outputs), where `builtins.currentSystem`
+and friends are unavailable. Same definition as nixpkgs' `lib.inPureEvalMode`.
+
+## `lib.inRestrictedEvalMode`
+
+True during restricted evaluation — NUR's indexer runs `restrict-eval`, where
+eval-time fetches of non-allow-listed URIs are forbidden (so a historic source
+must instead be fetched via a derivation, i.e. import-from-derivation).
+
+restrict-eval is the only mode that scrubs `getEnv` while remaining impure, so it
+is exactly: not pure-eval, yet `PATH` (essentially always set where nix runs) is
+empty. Robust by construction — under restrict-eval *every* variable is empty, so
+NUR is never missed; a false positive merely forces a build-time fetch, which
+also works. (There is no honest way to detect `allow-import-from-derivation`
+itself: its disabled error is uncatchable by `tryEval` and no builtin exposes the
+setting — so this restrict-eval signal is what source fetching keys on instead.)
+
+## `lib.eachSystem`
+
+Turn a `system: { <output> = v; }` function into `{ <output>.<system> = v; }`
+across `systems` — e.g. build per-system `packages`/`checks` outputs.
+
+## `lib.eachDefaultSystem`
+
+`eachSystem` applied over the four default systems (`defaultSystems`).
+
+<!-- END functions -->
 
 ## Historic software
 
-Under `#history` are a few curated collections of software history
-(`#history.python`, `#history.ghostscript`, `#history.poppler-utils`).
-There is also `#history.nixpkgs`, a set of pinned nixpkgs releases you can reach
-into for *any* historic package not curated directly — e.g.
-`#history.nixpkgs.v21_05.pkgs.gzip`.
+Under `#history` are curated collections of software history
+(`#history.python`, `#history.ghostscript`, `#history.poppler-utils`), plus
+`#history.nixpkgs` — pinned nixpkgs releases for reaching any historic package not
+curated directly. Each release `#history.nixpkgs.<release>` exposes:
+
+* `.version` — the release version string;
+* `.src` — the nixpkgs source tree;
+* `.nixpkgs` — the imported nixpkgs (call it with your own args);
+* `.pkgs` — that nixpkgs instantiated for the current system (e.g. `.pkgs.gzip`).
 
 Examples:
 
@@ -32,27 +94,54 @@ pdfinfo version 21.05.0
 
 ### Browsing and searching
 
-The packages live under `legacyPackages` (a nested namespace), so the easiest way
-to explore is **shell completion** after `#history.`.
-
-To **search or list** them, use `nix search` — not `nix flake show`. `nix flake
-show` does not recurse `legacyPackages` (by design, exactly as for nixpkgs), so it
-will only report it as `omitted`. `nix search` does recurse it:
+`nix flake show` does not recurse `legacyPackages` (by design, as for nixpkgs), so
+browse with `nix search`:
 
 ```sh
-# search the curated collections
-> nix search github:svenssonaxel/nur-packages#legacyPackages.x86_64-linux ghostscript
-
-# list every curated historic package (empty query matches all)
-> nix search github:svenssonaxel/nur-packages#legacyPackages.x86_64-linux ''
+> nix search github:svenssonaxel/nur-packages ghostscript   # search
+> nix search github:svenssonaxel/nur-packages ''            # list all curated
 ```
 
-The empty-query listing enumerates the curated `python` / `ghostscript` /
-`poppler-utils` collections only — it deliberately does **not** descend into
-`history.nixpkgs`, so you get the curated history, not a dump of every package in
-every pinned nixpkgs. To reach those, address them directly as
-`#history.nixpkgs.<release>.pkgs.<name>`.
+The listing covers the curated collections only — not `#history.nixpkgs`, which you
+address directly as `#history.nixpkgs.<release>.pkgs.<name>`.
 
-These commands need no special flags: historic sources are fetched at evaluation
-time, so browsing works on a fresh machine, on any system, without
-`--option allow-import-from-derivation true`.
+<!-- BEGIN packages (generated; see readme.nix) -->
+Curated packages:
+
+* `#history.ghostscript.v9_53_3`
+* `#history.ghostscript.v9_56_1`
+* `#history.ghostscript.v10_01_1`
+* `#history.ghostscript.v10_02_1`
+* `#history.ghostscript.v10_04_0`
+* `#history.ghostscript.v10_05_1`
+* `#history.poppler-utils.v21_05_0`
+* `#history.poppler-utils.v21_06_1`
+* `#history.poppler-utils.v22_04_0`
+* `#history.poppler-utils.v22_11_0`
+* `#history.poppler-utils.v23_02_0`
+* `#history.poppler-utils.v23_11_0`
+* `#history.poppler-utils.v24_02_0`
+* `#history.poppler-utils.v25_05_0`
+* `#history.python.v2_7`
+* `#history.python.v3_6`
+* `#history.python.v3_7`
+* `#history.python.v3_8`
+* `#history.python.v3_9`
+* `#history.python.v3_10`
+* `#history.python.v3_11`
+* `#history.python.v3_12`
+* `#history.python.v3_13`
+* `#history.python.v3_14`
+
+Pinned nixpkgs releases (reach any package via `#history.nixpkgs.<release>.pkgs.<name>`):
+
+* `#history.nixpkgs.v21_05`
+* `#history.nixpkgs.v21_11`
+* `#history.nixpkgs.v22_05`
+* `#history.nixpkgs.v22_11`
+* `#history.nixpkgs.v23_05`
+* `#history.nixpkgs.v23_11`
+* `#history.nixpkgs.v24_05`
+* `#history.nixpkgs.v24_11`
+* `#history.nixpkgs.v25_05`
+<!-- END packages -->

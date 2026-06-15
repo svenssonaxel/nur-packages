@@ -1,49 +1,25 @@
 { pkgs
-, # How to obtain a historic nixpkgs source tree from its (release tag, sha256).
-  # Two mechanisms produce the *identical* store path, so they are interchangeable
-  # and the caller picks which to inject:
-  #   default (M1) — pkgs.fetchFromGitHub: a derivation, so `import`ing its output
-  #     is import-from-derivation. NUR's restricted indexer enables IFD (and can't
-  #     fetch at eval time anyway), and the flake-less/CLI path can afford it, so
-  #     this is the default used when no fetcher is injected.
-  #   M2 — builtins.fetchTarball (injected by flake.nix): an eval-time fetch
-  #     returning a plain path, so there is no IFD and no per-system source builder.
-  #     That is what lets `nix flake show` / `nix search` work without the IFD flag,
-  #     on every system, for untrusted clients.
-  fetchNixpkgsSrc ? null
 }:
 
 let
-  fetchSrc =
-    if fetchNixpkgsSrc != null then fetchNixpkgsSrc
-    else (version: sha256: pkgs.fetchFromGitHub {
-      owner = "NixOS"; repo = "nixpkgs"; rev = version; inherit sha256;
-    });
-  inherit (import ../lib { inherit (pkgs) lib; }) attrToVersion;
+  inherit (import ../lib { inherit (pkgs) lib; }) attrToVersion inRestrictedEvalMode;
   system = pkgs.system;
-  baseCurl = pkgs.curl;   # modern, https-capable; used to fix old fetchers
 
-  # 0.12-0.14's stdenv bootstrap downloads bootstrap-tools with the bundled
-  # pre-https curl (nixos.org now redirects to https, which that curl cannot do).
-  # A per-version patch rewrites `download` to fetch the same bootstrap-tools FOD
-  # (same name/hash/mode, hence same store path) via the daemon's builtin:fetchurl
-  # over https: a build-time fetch, so it stays restrict-eval-safe and builds
-  # standalone. The `download` signature differs by release (0.12 uses sha1).
-  bootstrapPatches = {
-    "0.12" = ./patches/0.12.patch;
-    "0.13" = ./patches/0.13.patch;
-    "0.14" = ./patches/0.14.patch;
-  };
-  patchBootstrap = version: src: pkgs.applyPatches {
-    name = "nixpkgs-${version}-bootstrap-patched";
-    inherit src;
-    patches = [ bootstrapPatches.${version} ];
-  };
+  # Fetch a pinned nixpkgs source tree (release tag + its unpacked-NAR sha256) as an
+  # importable path. Under restrict-eval (NUR) eval-time fetches are forbidden, so use
+  # fetchFromGitHub (a derivation → import-from-derivation, which NUR allows);
+  # otherwise builtins.fetchTarball — an eval-time fetch needing no IFD, so
+  # `nix flake show` / `nix search` work flag-free on every system. Both fetchers
+  # yield the identical store path.
+  fetchNixpkgs = rev: sha256:
+    if inRestrictedEvalMode
+    then pkgs.fetchFromGitHub { owner = "NixOS"; repo = "nixpkgs"; inherit rev sha256; }
+    else builtins.fetchTarball {
+      url = "https://github.com/NixOS/nixpkgs/archive/${rev}.tar.gz";
+      inherit sha256;
+    };
 
   nixpkgsHashes = {
-    # v0_1..v0_11 don't evaluate on modern Nix (the pre-0.11 tarballs have no
-    # top-level default.nix; v0_11 uses the removed `__currentSystem` global).
-    # Commented out until that is addressed.
     # v0_1   = "0r0gh5fd8ag8mslxia9mybkqsi01wbnr8gq9f84k1j869cxbw1r4";
     # v0_2   = "0bjkp4jhkv45yqwggzdpzd581xvd0lrb4f9hla8dy4ah8kbmnzsv";
     # v0_3   = "0m2ahik6sxqp8j299gdbk84wjf41kl1cxpbbmc1gk576xrb4ls18";
@@ -59,8 +35,6 @@ let
     # v0_12  = "171wadjjb1xyk73ajndrhysxnicr5qmbv7b57sm8a1c0bnv1kb8h";
     # v0_13  = "0y3lfx67nq4n0wvsf9csz6arzzsb0kbgfrsgxxnx8ch90il8mf4y";
     # v0_14  = "0ymc0g3adrnil4fbrirlhbpjlgpl77zrjbsfjs445ms3z3p7mb1d";
-    # v15_09..v20_09 predate aarch64-darwin (Apple Silicon) support, so they don't
-    # evaluate on all default systems. Commented out until per-system support lands.
     # v15_09 = "0pn142js99ncn7f53bw7hcp99ldjzb2m7xhjrax00xp72zswzv2n";
     # v16_03 = "0m2b5ignccc5i5cyydhgcgbyl8bqip4dz32gw0c6761pd4kgw56v";
     # v16_09 = "1cx5cfsp4iiwq8921c15chn1mhjgzydvhdcmrvjmqzinxyz71bzh";
@@ -84,36 +58,14 @@ let
   };
   main = self: {
     inherit system nixpkgsHashes;
-    mkVersion = version: rawSrc:
-      let
-        src = if builtins.hasAttr version bootstrapPatches
-              then patchBootstrap version rawSrc
-              else rawSrc;
-        nixpkgs = import src;
-        # Old fetchurl/fetchurlBoot ship a pre-https curl, so package-source
-        # downloads fail on today's https-only mirrors. Re-instantiate the fetcher
-        # with the base nixpkgs' modern curl (re-importing the function and feeding
-        # it the args it declares, via intersectAttrs, rather than .override —
-        # which the oldest, plain-function fetchurl lacks). curl and its bootstrap
-        # deps are fetched with fetchurlBoot (to break the curl-needs-curl cycle),
-        # so that must be overridden too, not just fetchurl. Hash-transparent (only
-        # the fetch changes; source FODs and everything downstream are unchanged,
-        # so packages still substitute); fetchzip rides on fetchurl.
-        curlFix.config.packageOverrides = super:
-          let f = import (src + "/pkgs/build-support/fetchurl");
-              fixed = f (builtins.intersectAttrs (builtins.functionArgs f) super
-                         // { curl = baseCurl; });
-          in { fetchurl = fixed; fetchurlBoot = fixed; };
-        # Injected via config.packageOverrides, so pass it only to releases whose
-        # nixpkgs takes a `config` formal (0.12 has none — it reads config from the
-        # environment instead — and relies on substitution for its sources).
-        args = { inherit (self) system; }
-          // (if (builtins.functionArgs nixpkgs) ? config then curlFix else { });
-      in rec {
+    mkVersion = version: src:
+      let nixpkgs = import src;
+      in {
         inherit version src nixpkgs;
-        pkgs = nixpkgs args;
+        pkgs = nixpkgs { inherit (self) system; };
       };
-    getFromTar = version: sha256: self.mkVersion version (fetchSrc version sha256);
+    getFromTar = version: sha256:
+      self.mkVersion version (fetchNixpkgs version sha256);
     releases = builtins.mapAttrs
       (v: h: self.getFromTar (attrToVersion v) h)
       self.nixpkgsHashes;

@@ -3,11 +3,9 @@
 , history_nixpkgs
 }:
 
-let
-  inherit (lib) recursiveUpdate;
-in {
+# inherit (lib) recursiveUpdate;
+{
   # v2_6_7 = history_nixpkgs.v0_14.pkgs.python26;
-  # v2_6_9, v3_2..v3_5 build on the commented-out v15_09..v20_09 releases.
   # v2_6_9 =
   #   let config = { inherit system; config.allowBroken = true; };
   #       pkgs = history_nixpkgs.v15_09.nixpkgs config;

@@ -1,11 +1,9 @@
 { history_nixpkgs
 }:
 
-let
-  v = pkg: version: pkg // { inherit version; };
-in {
+# v = pkg: version: pkg // { inherit version; };
+{
   # v0_18_4  = v history_nixpkgs.v0_14.pkgs.poppler "0.18.4";
-  # v0_34_0..v20_08_0 build on the commented-out v15_09..v20_09 releases.
   # v0_34_0  = v history_nixpkgs.v15_09.pkgs.poppler_utils "0.34.0";
   # v0_36_0  = v history_nixpkgs.v16_03.pkgs.poppler_utils "0.36.0";
   # v0_47_0  = v history_nixpkgs.v16_09.pkgs.poppler_utils "0.47.0";

@@ -1,11 +1,8 @@
 { pkgs
-, # Forwarded to ./default.nix so checks build from the same source fetcher as
-  # legacyPackages (see history/nixpkgs.nix).
-  fetchNixpkgsSrc ? null
 }:
 
 let
-  history = import ./default.nix { inherit pkgs fetchNixpkgsSrc; };
+  history = import ./default.nix { inherit pkgs; };
   inherit (pkgs.lib) hasPrefix filterAttrs mapAttrs getName;
   inherit (import ../lib { inherit (pkgs) lib; }) attrToVersion;
   attrMatchesVer = attr: ver:
@@ -79,8 +76,7 @@ let
       '')
     history.python;
 in
-# Nested module -> version -> check derivation; the top level flattens this into
-# `checks.<system>` via lib.flattenAttrs (e.g. `hello-v15_09`).
+# Nested module -> version -> check derivations; flattened into checks.<system>.
 {
   hello = helloChecks;
   nixpkgs = nixpkgsChecks;

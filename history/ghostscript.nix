@@ -2,11 +2,8 @@
 , history_nixpkgs
 }:
 
-let
-  inherit (lib) recursiveUpdate;
-  gs = pkg: recursiveUpdate pkg { meta.mainProgram = "gs"; };
-in {
-  # v9_15..v9_52 build on the commented-out v15_09..v20_09 releases.
+# gs = pkg: lib.recursiveUpdate pkg { meta.mainProgram = "gs"; };
+{
   # v9_15    = gs history_nixpkgs.v15_09.pkgs.ghostscript // { version = "9.15"; };
   # v9_18    = gs history_nixpkgs.v16_09.pkgs.ghostscript;
   # v9_20    = gs history_nixpkgs.v17_09.pkgs.ghostscript;

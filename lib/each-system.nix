@@ -28,6 +28,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 let
+  /**
+    Turn a `system: { <output> = v; }` function into `{ <output>.<system> = v; }`
+    across `systems` — e.g. build per-system `packages`/`checks` outputs.
+  */
   eachSystem = systems: f:
     builtins.foldl'
       (attrs: system:
@@ -49,5 +53,6 @@ let
 in
 {
   inherit eachSystem defaultSystems;
+  /** `eachSystem` applied over the four default systems (`defaultSystems`). */
   eachDefaultSystem = eachSystem defaultSystems;
 }

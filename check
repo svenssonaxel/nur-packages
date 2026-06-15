@@ -1,28 +1,43 @@
 #!/usr/bin/env bash
 # Run every check for this repository:
-#   1. `nix flake check` — builds and runs each historic version, and seals the
-#      evaluation half of NUR indexing (the nur-listing check).
-#   2. NUR's restricted-eval indexing check (mirrors ci/nur/eval.py), run against
-#      the real store so the IFD-fetched nixpkgs sources are cached between runs.
-#
-# `require-sigs = false` is passed because this host's nix rejects cache.nixos.org's
-# (validly signed) old paths, which would otherwise force the whole historical
-# toolchain to rebuild from source. Drop it once that signature-verification issue
-# is fixed. Extra arguments are forwarded to `nix flake check`.
+#   1. `nix flake check` — builds and runs each historic version.
+#   2. The evaluation half of NUR indexing: under NUR's restricted eval (+ IFD),
+#      force the name, meta and drvPath of every discoverable historic package, so
+#      an eval error or broken meta fails the check.
+# Extra arguments are forwarded to `nix flake check`.
 set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "==> nix flake check"
-nix flake check --option require-sigs false "$@"
+nix flake check "$@"
 
 echo "==> NUR restricted eval"
+# Mirror NUR's CI evaluation (nur-packages-template/ci.nix): import the repo, walk
+# the recurseForDerivations-marked tree (so `lib` and the unmarked `nixpkgs` release
+# set are skipped), and force each package's name/meta/drvPath under restrict-eval +
+# IFD, so an eval error or broken meta fails here. `pkgs` is passed via the
+# expression because restrict-eval forbids default.nix's fetchGit default.
+#
+# This is `nix eval`, not the README's manual `nix-env -qa` quick-check: nix-env's
+# import-from-derivation needs each source .drv valid in the store even when its
+# output already exists (which it does after `nix flake check` fetches the source at
+# eval time), and it won't instantiate the .drv itself; the evaluator does. So this
+# works in any store state.
 nixpkgs=$(nix eval --impure --raw --expr '(builtins.getFlake (toString ./.)).inputs.nixpkgs.outPath')
-nix-env -f . -qa '*' --meta --xml \
-  --arg pkgs "import $nixpkgs { }" \
-  --option restrict-eval true \
-  --option allow-import-from-derivation true \
-  --option require-sigs false \
+nix eval --raw --impure \
+  --option restrict-eval true --option allow-import-from-derivation true \
   -I nixpkgs="$nixpkgs" -I . \
-  > /dev/null
+  --expr 'let pkgs = import <nixpkgs> { };
+              lib = pkgs.lib;
+              flatten = s: lib.concatLists (lib.mapAttrsToList
+                (_: v:
+                  if lib.isDerivation v then [ v ]
+                  else if lib.isAttrs v && (v.recurseForDerivations or false) then flatten v
+                  else [ ])
+                s);
+          in builtins.deepSeq
+               (map (d: { inherit (d) name drvPath; meta = builtins.deepSeq d.meta "ok"; })
+                  (flatten (import ./. { inherit pkgs; })))
+               "ok"' > /dev/null
 
 echo "==> all checks passed"
