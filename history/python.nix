@@ -26,5 +26,5 @@
   v3_11  = history_nixpkgs.v25_05.pkgs.python311;
   v3_12  = history_nixpkgs.v25_05.pkgs.python312;
   v3_13  = history_nixpkgs.v25_05.pkgs.python313;
-  v3_14  = history_nixpkgs.v25_05.pkgs.python314;
+  v3_14  = history_nixpkgs.v25_11.pkgs.python314;
 }
