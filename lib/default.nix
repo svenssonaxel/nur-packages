@@ -17,6 +17,16 @@ rec {
   attrToVersion = builtins.replaceStrings [ "v" "_" ] [ "" "." ];
 
   /**
+    Shorten a git revision to its 7-character prefix, for use in version strings.
+
+    # Example
+    ```nix
+    shortrev "0123456789abcdef" => "0123456"
+    ```
+  */
+  shortrev = rev: builtins.substring 0 7 rev;
+
+  /**
     Flatten a nested tree of derivations into a single level, joining each path
     component with "-" (e.g. `{ hello.v15_09 = d; }` => `{ "hello-v15_09" = d; }`).
     Builds the flat `checks.<system>` / `packages.<system>` sets that flakes

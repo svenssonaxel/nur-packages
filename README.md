@@ -21,6 +21,15 @@ Convert a `vX_Y_Z` attribute name to its `X.Y.Z` version string.
 attrToVersion "v3_6_1" => "3.6.1"
 ```
 
+## `lib.shortrev`
+
+Shorten a git revision to its 7-character prefix, for use in version strings.
+
+### Example
+```nix
+shortrev "0123456789abcdef" => "0123456"
+```
+
 ## `lib.flattenDerivations`
 
 Flatten a nested tree of derivations into a single level, joining each path
