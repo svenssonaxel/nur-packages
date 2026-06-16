@@ -182,6 +182,12 @@ Under `#<name>` (a flat `packages.<system>` set) are the current, non-historic
 packages this repository maintains. Build one with `nix build .#<name>`, or browse
 them with `nix search`. The list below is generated (see readme.nix).
 
+`#wordlists` is a multilingual wordlist generator; its default build is a small
+aspell English list, but its generator API (on passthru) builds dictionaries from
+large language-data sources — most notably multi-gigabyte Wikimedia Wiktionary SQL
+dumps, plus SCOWL, the Debian miscfiles and the Swedish sslug list. Those large
+fetches use a uxu.se mirror fallback.
+
 <!-- BEGIN published (generated; see readme.nix) -->
 * `#domain-check`
 * `#exrex`
@@ -193,6 +199,7 @@ them with `nix search`. The list below is generated (see readme.nix).
 * `#transcribe-english`
 * `#transcribe-swedish`
 * `#whitakers-words`
+* `#wordlists`
 <!-- END published -->
 
 `transcribe-english` and `transcribe-swedish` are runtime-impure: the Whisper

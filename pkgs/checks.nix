@@ -100,4 +100,15 @@ in
     case "$got" in *Whisper*) ;; *) echo "help does not mention Whisper" >&2; exit 1 ;; esac
     case "$got" in *openai-whisper*) echo "help still mentions openai-whisper" >&2; exit 1 ;; *) ;; esac
   '';
+
+  # wordlists pulls multi-GB Wikimedia dumps for its wiktionary path, so the smoke
+  # check stays away from that: it builds the cheap aspell English list (the default
+  # package, no large fetches) and asserts a non-empty, plausible-looking wordlist.
+  wordlists = mkCheck "wordlists" ''
+    list=${published.wordlists}/share/dict/English-aspell
+    x [ -s "$list" ]
+    n=$(wc -l < "$list"); echo "$n words"
+    x [ "$n" -gt 1000 ]
+    x grep -qx hello "$list"
+  '';
 }
