@@ -184,4 +184,5 @@ them with `nix search`. The list below is generated (see readme.nix).
 * `#exrex`
 * `#html2xml`
 * `#markdown`
+* `#mysql2sqlite`
 <!-- END published -->

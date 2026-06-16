@@ -41,4 +41,14 @@ in
     echo "$got"
     case "$got" in *'1.0.1'*) ;; *) echo "missing version 1.0.1" >&2; exit 1 ;; esac
   '';
+
+  # awk script: assert it is an executable file, then run it argument-less so it
+  # prints its USAGE banner (to stderr) and exits 1 — captured, exit not asserted.
+  mysql2sqlite = mkCheck "mysql2sqlite" ''
+    bin=${published.mysql2sqlite}/bin/mysql2sqlite
+    x [ -x "$bin" ]
+    got="$("$bin" 2>&1 || true)"
+    echo "$got"
+    case "$got" in *USAGE*mysql2sqlite*) ;; *) echo "missing USAGE banner" >&2; exit 1 ;; esac
+  '';
 }
