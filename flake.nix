@@ -3,7 +3,7 @@
 
   # nixpkgs is the only flake input; it is the single source of truth for the
   # base nixpkgs pin (recorded in flake.lock, which default.nix also reads).
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
   outputs = { self, nixpkgs }:
     let

@@ -144,4 +144,6 @@ Pinned nixpkgs releases (reach any package via `#history.nixpkgs.<release>.pkgs.
 * `#history.nixpkgs.v24_05`
 * `#history.nixpkgs.v24_11`
 * `#history.nixpkgs.v25_05`
+* `#history.nixpkgs.v25_11`
+* `#history.nixpkgs.v26_05`
 <!-- END packages -->
