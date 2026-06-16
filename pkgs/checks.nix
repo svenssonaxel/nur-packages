@@ -30,4 +30,9 @@ in
     echo "$got"
     case "$got" in *'<h1>hi</h1>'*) ;; *) echo "missing <h1>hi</h1>" >&2; exit 1 ;; esac
   '';
+
+  exrex = mkCheck "exrex" ''
+    x ${published.exrex}/bin/exrex --help
+    x [ ! -e ${published.exrex}/bin/exrex.py ]
+  '';
 }
