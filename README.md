@@ -180,5 +180,5 @@ packages this repository maintains. Build one with `nix build .#<name>`, or brow
 them with `nix search`. The list below is generated (see readme.nix).
 
 <!-- BEGIN published (generated; see readme.nix) -->
-
+* `#html2xml`
 <!-- END published -->
