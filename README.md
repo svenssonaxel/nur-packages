@@ -181,4 +181,5 @@ them with `nix search`. The list below is generated (see readme.nix).
 
 <!-- BEGIN published (generated; see readme.nix) -->
 * `#html2xml`
+* `#markdown`
 <!-- END published -->

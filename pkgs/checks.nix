@@ -24,4 +24,10 @@ in
     echo "$got"
     case "$got" in *'<p>hi</p>'*) ;; *) echo "missing <p>hi</p>" >&2; exit 1 ;; esac
   '';
+
+  markdown = mkCheck "markdown" ''
+    got="$(echo '# hi' | ${published.markdown}/bin/markdown | tr -d ' \n\t')"
+    echo "$got"
+    case "$got" in *'<h1>hi</h1>'*) ;; *) echo "missing <h1>hi</h1>" >&2; exit 1 ;; esac
+  '';
 }
