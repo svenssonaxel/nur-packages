@@ -185,4 +185,5 @@ them with `nix search`. The list below is generated (see readme.nix).
 * `#html2xml`
 * `#markdown`
 * `#mysql2sqlite`
+* `#p7zip-wrapper`
 <!-- END published -->

@@ -51,4 +51,13 @@ in
     echo "$got"
     case "$got" in *USAGE*mysql2sqlite*) ;; *) echo "missing USAGE banner" >&2; exit 1 ;; esac
   '';
+
+  # The upstream gzip-like wrapper's usage() always `exit 1` (even for --help), so
+  # run it and assert the help banner rather than the exit code: the point is that
+  # the wrapper resolves its PATH deps (sh, 7za, which, ...) and dispatches.
+  p7zip-wrapper = mkCheck "p7zip-wrapper" ''
+    got="$(${published.p7zip-wrapper}/bin/p7zip --help 2>&1 || true)"
+    echo "$got"
+    case "$got" in *Usage:*p7zip*) ;; *) echo "missing usage banner" >&2; exit 1 ;; esac
+  '';
 }
