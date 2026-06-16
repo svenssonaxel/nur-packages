@@ -60,4 +60,13 @@ in
     echo "$got"
     case "$got" in *Usage:*p7zip*) ;; *) echo "missing usage banner" >&2; exit 1 ;; esac
   '';
+
+  # pgadmin4 is a web server — do NOT launch it. Just assert the wrapped binary
+  # exists and that the wrapper defaults PGADMIN_SERVER_MODE to OFF (desktop mode).
+  pgadmin = mkCheck "pgadmin" ''
+    bin=${published.pgadmin}/bin/pgadmin4
+    x [ -e "$bin" ]
+    x grep -q 'PGADMIN_SERVER_MODE' "$bin"
+    x grep -q "'OFF'" "$bin"
+  '';
 }

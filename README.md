@@ -186,4 +186,5 @@ them with `nix search`. The list below is generated (see readme.nix).
 * `#markdown`
 * `#mysql2sqlite`
 * `#p7zip-wrapper`
+* `#pgadmin`
 <!-- END published -->
