@@ -69,4 +69,12 @@ in
     x grep -q 'PGADMIN_SERVER_MODE' "$bin"
     x grep -q "'OFF'" "$bin"
   '';
+
+  # Latin-English dictionary: feed it a word then a blank line (which exits the
+  # interactive prompt) and assert it translates `rosa` -> `rose`.
+  whitakers-words = mkCheck "whitakers-words" ''
+    got="$(printf 'rosa\n\n' | ${published.whitakers-words}/bin/whitakers-words)"
+    echo "$got"
+    case "$got" in *rose*) ;; *) echo "rosa did not translate to rose" >&2; exit 1 ;; esac
+  '';
 }

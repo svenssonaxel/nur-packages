@@ -187,4 +187,5 @@ them with `nix search`. The list below is generated (see readme.nix).
 * `#mysql2sqlite`
 * `#p7zip-wrapper`
 * `#pgadmin`
+* `#whitakers-words`
 <!-- END published -->
