@@ -18,4 +18,6 @@
   v10_02_1 = history_nixpkgs.v24_05.pkgs.ghostscript;
   v10_04_0 = history_nixpkgs.v24_11.pkgs.ghostscript;
   v10_05_1 = history_nixpkgs.v25_05.pkgs.ghostscript;
+  v10_06_0 = history_nixpkgs.v25_11.pkgs.ghostscript;
+  v10_07_0 = history_nixpkgs.v26_05.pkgs.ghostscript;
 }

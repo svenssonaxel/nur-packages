@@ -128,6 +128,8 @@ Curated packages:
 * `#history.ghostscript.v10_02_1`
 * `#history.ghostscript.v10_04_0`
 * `#history.ghostscript.v10_05_1`
+* `#history.ghostscript.v10_06_0`
+* `#history.ghostscript.v10_07_0`
 * `#history.poppler-utils.v21_05_0`
 * `#history.poppler-utils.v21_06_1`
 * `#history.poppler-utils.v22_04_0`
