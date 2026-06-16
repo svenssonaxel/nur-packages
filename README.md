@@ -138,6 +138,7 @@ Curated packages:
 * `#history.poppler-utils.v23_11_0`
 * `#history.poppler-utils.v24_02_0`
 * `#history.poppler-utils.v25_05_0`
+* `#history.poppler-utils.v25_10_0`
 * `#history.python.v2_7`
 * `#history.python.v3_6`
 * `#history.python.v3_7`

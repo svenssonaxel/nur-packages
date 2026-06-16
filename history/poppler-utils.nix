@@ -22,4 +22,5 @@
   v23_11_0 = history_nixpkgs.v23_11.pkgs.poppler_utils;
   v24_02_0 = history_nixpkgs.v24_11.pkgs.poppler_utils;
   v25_05_0 = history_nixpkgs.v25_05.pkgs.poppler-utils;
+  v25_10_0 = history_nixpkgs.v26_05.pkgs.poppler-utils;
 }
