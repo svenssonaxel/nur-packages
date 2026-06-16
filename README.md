@@ -190,5 +190,12 @@ them with `nix search`. The list below is generated (see readme.nix).
 * `#mysql2sqlite`
 * `#p7zip-wrapper`
 * `#pgadmin`
+* `#transcribe-english`
+* `#transcribe-swedish`
 * `#whitakers-words`
 <!-- END published -->
+
+`transcribe-english` and `transcribe-swedish` are runtime-impure: the Whisper
+speech-to-text model (~3 GB) is not part of the build, but downloaded to
+`~/.cache/whisper` on first use, so their first run needs network access and
+they cannot transcribe inside a sandboxed build.

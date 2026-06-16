@@ -77,4 +77,27 @@ in
     echo "$got"
     case "$got" in *rose*) ;; *) echo "rosa did not translate to rose" >&2; exit 1 ;; esac
   '';
+
+  # Downloads a ~3 GB model at RUNTIME, so we cannot transcribe in a sandboxed
+  # build. Light check: wrapper exists/executable, `--help` runs and describes the
+  # actual engine (Whisper) — and does NOT mention the old wrong help (Granite).
+  transcribe-english = mkCheck "transcribe-english" ''
+    bin=${published.transcribe-english}/bin/transcribe-english
+    x [ -x "$bin" ]
+    got="$("$bin" --help)"
+    echo "$got"
+    case "$got" in *Whisper*) ;; *) echo "help does not mention Whisper" >&2; exit 1 ;; esac
+    case "$got" in *Granite*) echo "help still mentions Granite" >&2; exit 1 ;; *) ;; esac
+  '';
+
+  # Same shape: Swedish uses KB-Whisper-large via faster-whisper; assert the help
+  # mentions Whisper and not the old wrong engine string (openai-whisper).
+  transcribe-swedish = mkCheck "transcribe-swedish" ''
+    bin=${published.transcribe-swedish}/bin/transcribe-swedish
+    x [ -x "$bin" ]
+    got="$("$bin" --help)"
+    echo "$got"
+    case "$got" in *Whisper*) ;; *) echo "help does not mention Whisper" >&2; exit 1 ;; esac
+    case "$got" in *openai-whisper*) echo "help still mentions openai-whisper" >&2; exit 1 ;; *) ;; esac
+  '';
 }
