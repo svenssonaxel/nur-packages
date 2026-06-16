@@ -35,4 +35,10 @@ in
     x ${published.exrex}/bin/exrex --help
     x [ ! -e ${published.exrex}/bin/exrex.py ]
   '';
+
+  domain-check = mkCheck "domain-check" ''
+    got="$(${published.domain-check}/bin/domain-check --version)"
+    echo "$got"
+    case "$got" in *'1.0.1'*) ;; *) echo "missing version 1.0.1" >&2; exit 1 ;; esac
+  '';
 }
