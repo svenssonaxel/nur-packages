@@ -22,11 +22,18 @@ let
   # Only the vX_Y nixpkgs releases (drop allSources and any non-release attr).
   releaseAttrs = filterAttrs (n: _: hasPrefix "v" n) history.nixpkgs;
 
+  # Releases whose packages evaluate on the current system. Pre-aarch64 releases
+  # (v15_09–v20_09 on aarch64-*) instantiate `.pkgs` but throw when a package is
+  # forced, so the hello check (which forces `.pkgs.hello`) is emitted only for
+  # supported pairs. The nixpkgs check below reads only `.src` (system-independent),
+  # so it runs for every release.
+  supportedReleaseAttrs = filterAttrs (_: rel: rel.supportsSystem) releaseAttrs;
+
   helloChecks = mapAttrs
     (v: rel: mkCheck "hello-${v}" ''
       x [ -e ${rel.pkgs.hello}/bin/hello ]
     '')
-    releaseAttrs;
+    supportedReleaseAttrs;
 
   nixpkgsChecks = mapAttrs
     (v: rel: mkCheck "nixpkgs-${v}" ''

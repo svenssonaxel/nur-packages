@@ -79,6 +79,11 @@ curated directly. Each release `#history.nixpkgs.<release>` exposes:
 * `.nixpkgs` — the imported nixpkgs (call it with your own args);
 * `.pkgs` — that nixpkgs instantiated for the current system (e.g. `.pkgs.gzip`).
 
+`.version`, `.src` and `.nixpkgs` are available on every system; `.pkgs` packages
+only evaluate on systems the release predates the support cutoff of — `aarch64-linux`
+from 17.03, `aarch64-darwin` from 21.05, `x86_64-{linux,darwin}` throughout — so the
+per-release checks skip the unsupported pairs.
+
 Examples:
 
 ```sh
@@ -135,6 +140,17 @@ Curated packages:
 
 Pinned nixpkgs releases (reach any package via `#history.nixpkgs.<release>.pkgs.<name>`):
 
+* `#history.nixpkgs.v15_09`
+* `#history.nixpkgs.v16_03`
+* `#history.nixpkgs.v16_09`
+* `#history.nixpkgs.v17_03`
+* `#history.nixpkgs.v17_09`
+* `#history.nixpkgs.v18_03`
+* `#history.nixpkgs.v18_09`
+* `#history.nixpkgs.v19_03`
+* `#history.nixpkgs.v19_09`
+* `#history.nixpkgs.v20_03`
+* `#history.nixpkgs.v20_09`
 * `#history.nixpkgs.v21_05`
 * `#history.nixpkgs.v21_11`
 * `#history.nixpkgs.v22_05`

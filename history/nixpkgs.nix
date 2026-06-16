@@ -5,6 +5,26 @@ let
   inherit (import ../lib { inherit (pkgs) lib; }) attrToVersion inRestrictedEvalMode;
   system = pkgs.system;
 
+  # Whether a release (CalVer "YY.MM") supports `system`. Pre-aarch64 releases
+  # instantiate `.pkgs` but error when a package is forced for an unsupported system
+  # (and not always catchably). Static per-system minimum-release cutoffs (CalVer as
+  # integer YYMM), found by instantiating each release's `hello` per system:
+  # x86_64-* throughout, aarch64-linux from 17.03, aarch64-darwin from 21.05. Lets
+  # checks.nix skip unsupported (release, system) pairs; `.src`/`.version`/`.nixpkgs`
+  # stay available everywhere.
+  releaseSupportsSystem = version: sys:
+    let
+      calver = let p = pkgs.lib.splitVersion version;
+               in pkgs.lib.toIntBase10 (builtins.elemAt p 0) * 100
+                + pkgs.lib.toIntBase10 (builtins.elemAt p 1);
+      minCalver = {
+        x86_64-linux = 0;
+        x86_64-darwin = 0;
+        aarch64-linux = 1703;
+        aarch64-darwin = 2105;
+      }.${sys} or 0;
+    in calver >= minCalver;
+
   # Fetch a pinned nixpkgs source tree (release tag + its unpacked-NAR sha256) as an
   # importable path. Under restrict-eval (NUR) eval-time fetches are forbidden, so use
   # fetchFromGitHub (a derivation → import-from-derivation, which NUR allows);
@@ -35,17 +55,17 @@ let
     # v0_12  = "171wadjjb1xyk73ajndrhysxnicr5qmbv7b57sm8a1c0bnv1kb8h";
     # v0_13  = "0y3lfx67nq4n0wvsf9csz6arzzsb0kbgfrsgxxnx8ch90il8mf4y";
     # v0_14  = "0ymc0g3adrnil4fbrirlhbpjlgpl77zrjbsfjs445ms3z3p7mb1d";
-    # v15_09 = "0pn142js99ncn7f53bw7hcp99ldjzb2m7xhjrax00xp72zswzv2n";
-    # v16_03 = "0m2b5ignccc5i5cyydhgcgbyl8bqip4dz32gw0c6761pd4kgw56v";
-    # v16_09 = "1cx5cfsp4iiwq8921c15chn1mhjgzydvhdcmrvjmqzinxyz71bzh";
-    # v17_03 = "1fw9ryrz1qzbaxnjqqf91yxk1pb9hgci0z0pzw53f675almmv9q2";
-    # v17_09 = "0kpx4h9p1lhjbn1gsil111swa62hmjs9g93xmsavfiki910s73sh";
-    # v18_03 = "0hk4y2vkgm1qadpsm4b0q1vxq889jhxzjx3ragybrlwwg54mzp4f";
-    # v18_09 = "1ib96has10v5nr6bzf7v8kw7yzww8zanxgw2qi1ll1sbv6kj6zpd";
-    # v19_03 = "0q2m2qhyga9yq29yz90ywgjbn9hdahs7i8wwlq7b55rdbyiwa5dy";
-    # v19_09 = "0mhqhq21y5vrr1f30qd2bvydv4bbbslvyzclhw0kdxmkgg3z4c92";
-    # v20_03 = "0182ys095dfx02vl2a20j1hz92dx3mfgz2a6fhn31bqlp1wa8hlq";
-    # v20_09 = "1wg61h4gndm3vcprdcg7rc4s1v3jkm5xd7lw8r2f67w502y94gcy";
+    v15_09 = "0pn142js99ncn7f53bw7hcp99ldjzb2m7xhjrax00xp72zswzv2n";
+    v16_03 = "0m2b5ignccc5i5cyydhgcgbyl8bqip4dz32gw0c6761pd4kgw56v";
+    v16_09 = "1cx5cfsp4iiwq8921c15chn1mhjgzydvhdcmrvjmqzinxyz71bzh";
+    v17_03 = "1fw9ryrz1qzbaxnjqqf91yxk1pb9hgci0z0pzw53f675almmv9q2";
+    v17_09 = "0kpx4h9p1lhjbn1gsil111swa62hmjs9g93xmsavfiki910s73sh";
+    v18_03 = "0hk4y2vkgm1qadpsm4b0q1vxq889jhxzjx3ragybrlwwg54mzp4f";
+    v18_09 = "1ib96has10v5nr6bzf7v8kw7yzww8zanxgw2qi1ll1sbv6kj6zpd";
+    v19_03 = "0q2m2qhyga9yq29yz90ywgjbn9hdahs7i8wwlq7b55rdbyiwa5dy";
+    v19_09 = "0mhqhq21y5vrr1f30qd2bvydv4bbbslvyzclhw0kdxmkgg3z4c92";
+    v20_03 = "0182ys095dfx02vl2a20j1hz92dx3mfgz2a6fhn31bqlp1wa8hlq";
+    v20_09 = "1wg61h4gndm3vcprdcg7rc4s1v3jkm5xd7lw8r2f67w502y94gcy";
     v21_05 = "1ckzhh24mgz6jd1xhfgx0i9mijk6xjqxwsshnvq789xsavrmsc36";
     v21_11 = "162dywda2dvfj1248afxc45kcrg83appjd0nmdb541hl7rnncf02";
     v22_05 = "0d643wp3l77hv2pmg2fi7vyxn4rwy0iyr8djcw1h5x72315ck9ik";
@@ -62,9 +82,14 @@ let
     inherit system nixpkgsHashes;
     mkVersion = version: src:
       let nixpkgs = import src;
+          pkgs = nixpkgs { inherit (self) system; };
       in {
-        inherit version src nixpkgs;
-        pkgs = nixpkgs { inherit (self) system; };
+        inherit version src nixpkgs pkgs;
+        # Whether packages from this release evaluate on the current system (see
+        # releaseSupportsSystem). Consumers gate per-system: checks.nix omits the
+        # hello check for unsupported pairs rather than emitting a derivation that
+        # can't evaluate.
+        supportsSystem = releaseSupportsSystem version system;
       };
     getFromTar = version: sha256:
       self.mkVersion version (fetchNixpkgs version sha256);
