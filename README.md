@@ -163,3 +163,13 @@ Pinned nixpkgs releases (reach any package via `#history.nixpkgs.<release>.pkgs.
 * `#history.nixpkgs.v25_11`
 * `#history.nixpkgs.v26_05`
 <!-- END packages -->
+
+## Published software
+
+Under `#<name>` (a flat `packages.<system>` set) are the current, non-historic
+packages this repository maintains. Build one with `nix build .#<name>`, or browse
+them with `nix search`. The list below is generated (see readme.nix).
+
+<!-- BEGIN published (generated; see readme.nix) -->
+
+<!-- END published -->

@@ -34,6 +34,9 @@
         legacyPackages = {
           inherit (import ./default.nix { inherit pkgs; }) history;
         };
+        # Published software, a flat set of derivations, so `nix build .#<name>`
+        # and `nix search` work. Auto-discovered from ./pkgs (empty for now).
+        packages = import ./pkgs { inherit pkgs; };
         checks = import ./checks.nix { inherit pkgs; };
       });
 }

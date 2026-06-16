@@ -19,4 +19,8 @@ in
   # Historic versions, marked for discovery (nix search / nix-env / NUR). The raw
   # `nixpkgs` release set is left unmarked, so it is not enumerated.
   history = ourLib.recurseIntoDerivations rawHistory // { inherit (rawHistory) nixpkgs; };
+
+  # Published software, marked for discovery (nix search / nix-env / NUR), same as
+  # `history`. Auto-discovered from ./pkgs (empty for now).
+  pkgs = ourLib.recurseIntoDerivations (import ./pkgs { inherit pkgs; });
 }

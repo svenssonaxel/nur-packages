@@ -17,8 +17,15 @@
 
 let
   inherit (pkgs) lib;
-  history = (import ./default.nix { inherit pkgs; }).history;
+  self = import ./default.nix { inherit pkgs; };
+  history = self.history;
   isVer = lib.hasPrefix "v";
+
+  # Published software names (exclude the recurseForDerivations mark). Pure: only
+  # attribute names are read, no derivation is forced. Empty list when pkgs/ is empty.
+  publishedNames = builtins.filter (n: n != "recurseForDerivations")
+    (builtins.attrNames self.pkgs);
+  publishedMd = lib.concatStringsSep "\n" (map (n: "* `#${n}`") publishedNames);
 
   # Curated collections (exclude the raw nixpkgs set and the recurseForDerivations
   # mark). Pure: only attribute names are read, no derivation is forced.
@@ -48,7 +55,7 @@ let
   '';
 
   generated = pkgs.runCommand "README.md"
-    { inherit packagesMd; functionsFile = functionsMd; template = ./README.md; } ''
+    { inherit packagesMd publishedMd; functionsFile = functionsMd; template = ./README.md; } ''
       splice() { # begin-marker end-marker content-file infile
         awk -v b="$1" -v e="$2" -v f="$3" '
           index($0, b) { print; while ((getline l < f) > 0) print l; close(f); s = 1; next }
@@ -57,8 +64,10 @@ let
         ' "$4"
       }
       printf '%s\n' "$packagesMd" > packages.md
+      printf '%s\n' "$publishedMd" > published.md
       splice "BEGIN functions" "END functions" "$functionsFile" "$template" > step1.md
-      splice "BEGIN packages"  "END packages"  packages.md      step1.md   > $out
+      splice "BEGIN packages"  "END packages"  packages.md      step1.md   > step2.md
+      splice "BEGIN published" "END published" published.md      step2.md   > $out
     '';
 in
 {
