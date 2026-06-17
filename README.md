@@ -191,6 +191,7 @@ fetches use a uxu.se mirror fallback.
 <!-- BEGIN published (generated; see readme.nix) -->
 * `#domain-check`
 * `#exrex`
+* `#grandfather-xclock`
 * `#html2xml`
 * `#markdown`
 * `#mysql2sqlite`
@@ -200,6 +201,7 @@ fetches use a uxu.se mirror fallback.
 * `#transcribe-swedish`
 * `#whitakers-words`
 * `#wordlists`
+* `#xclock`
 <!-- END published -->
 
 `transcribe-english` and `transcribe-swedish` are runtime-impure: the Whisper

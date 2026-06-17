@@ -101,6 +101,27 @@ in
     case "$got" in *openai-whisper*) echo "help still mentions openai-whisper" >&2; exit 1 ;; *) ;; esac
   '';
 
+  # xclock is an X GUI app — can't run headless. Build + assert the binary, both
+  # variant app-defaults, and that the wrapper self-sets XFILESEARCHPATH so it
+  # finds them (`%N%C` → XClock, or XClock-<v> via `-xrm '*customization: -<v>'`).
+  xclock = mkCheck "xclock" ''
+    x [ -x ${published.xclock}/bin/xclock ]
+    x [ -f ${published.xclock}/share/X11/app-defaults/XClock-ampm ]
+    x [ -f ${published.xclock}/share/X11/app-defaults/XClock-grandfather ]
+    x grep -q 'XFILESEARCHPATH' ${published.xclock}/bin/xclock
+  '';
+
+  # grandfather-xclock is an X GUI app — can't run headless. Assert the wrapper
+  # loads the grandfather variant via XENVIRONMENT (high precedence, beats the
+  # user's own xclock resources) and uses no global xrdb.
+  grandfather-xclock = mkCheck "grandfather-xclock" ''
+    bin=${published.grandfather-xclock}/bin/grandfather-xclock
+    x [ -x "$bin" ]
+    x grep -q 'XENVIRONMENT' "$bin"
+    x grep -q 'XClock-grandfather' "$bin"
+    if grep -q 'xrdb' "$bin"; then echo "wrapper still references xrdb" >&2; exit 1; fi
+  '';
+
   # wordlists pulls multi-GB Wikimedia dumps for its wiktionary path, so the smoke
   # check stays away from that: it builds the cheap aspell English list (the default
   # package, no large fetches) and asserts a non-empty, plausible-looking wordlist.
